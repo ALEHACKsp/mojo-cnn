@@ -5,17 +5,17 @@
 //
 //    Permission is hereby granted, free of charge, to any person obtaining a
 //    copy of this software and associated documentation files(the "Software"),
-//    to deal in the Software without restriction, including without 
+//    to deal in the Software without restriction, including without
 //    limitation the rights to use, copy, modify, merge, publish, distribute,
 //    sublicense, and/or sell copies of the Software, and to permit persons to
-//    whom the Software is furnished to do so, subject to the following 
+//    whom the Software is furnished to do so, subject to the following
 //    conditions :
 //
 //    The above copyright notice and this permission notice shall be included
 //    in all copies or substantial portions of the Software.
 //
 //    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-//    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF 
+//    OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 //    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 //    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 //    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT
@@ -25,7 +25,7 @@
 // ============================================================================
 //    train_cifar.cpp:  train cifar-10 classifier
 //
-//    Instructions: 
+//    Instructions:
 //	  Add the "mojo" folder in your include path.
 //    Download MNIST data and unzip locally on your machine:
 //		(http://yann.lecun.com/exdb/mnist/index.html)
@@ -40,7 +40,7 @@
 //#include <tchar.h>
 
 //#define MOJO_CV3
-#include <mojo.h>  
+#include <mojo.h>
 #include <util.h>
 #include "cifar_parser.h"
 
@@ -49,7 +49,6 @@ const float initial_learning_rate = 0.05f;
 std::string solver = "adam";
 std::string data_path = "../data/cifar-10-batches-bin/";
 using namespace cifar;
-
 
 float test(mojo::network &cnn, const std::vector<std::vector<float>> &test_images, const std::vector<int> &test_labels)
 {
@@ -60,21 +59,21 @@ float test(mojo::network &cnn, const std::vector<std::vector<float>> &test_image
 	int correct_predictions = 0;
 	const int record_cnt = (int)test_images.size();
 
-	#pragma omp parallel for reduction(+:correct_predictions) schedule(dynamic)
-	for (int k = 0; k<record_cnt; k++)
+#pragma omp parallel for reduction(+:correct_predictions) schedule(dynamic)
+	for (int k = 0; k < record_cnt; k++)
 	{
 		const int prediction = cnn.predict_class(test_images[k].data());
 		if (prediction == test_labels[k]) correct_predictions += 1;
 		if (k % 1000 == 0) progress.draw_progress(k);
 	}
 
-	float accuracy = (float)correct_predictions / record_cnt*100.f;
+	float accuracy = (float)correct_predictions / record_cnt * 100.f;
 	return accuracy;
 }
 
 void remove_cifar_mean(std::vector<std::vector<float>> &train_images, std::vector<std::vector<float>> &test_images)
 {
-	// calculate the mean for every pixel position 
+	// calculate the mean for every pixel position
 	mojo::matrix mean(32, 32, 3);
 	mean.fill(0);
 	for (int i = 0; i < train_images.size(); i++) mean += mojo::matrix(32, 32, 3, train_images[i].data());
@@ -118,21 +117,20 @@ int main()
 	cnn.set_smart_training(true); // automate training
 	cnn.set_learning_rate(initial_learning_rate);
 	// augment data random shifts only +/-2 pix
-	cnn.set_random_augmentation(2,2,0,0,mojo::edge);
+	cnn.set_random_augmentation(2, 2, 0, 0, mojo::edge);
 
-	// configure network 
+	// configure network
 	cnn.push_back("I1", "input 32 32 3");				// CIFAR is 32x32x3
 	cnn.push_back("C1", "convolution 3 16 1 elu");		// 32-3+1=30
 	cnn.push_back("P1", "semi_stochastic_pool 3 3");	// 10x10 out
 	cnn.push_back("C2", "convolution 3 64 1 elu");		// 8x8 out
 	cnn.push_back("P2", "semi_stochastic_pool 4 4");	// 2x2 out
 	cnn.push_back("FC2", "softmax 10");
-	
+
 	// connect all the layers. Call connect() manually for all layer connections if you need more exotic networks.
 	cnn.connect_all();
 	std::cout << "==  Network Configuration  ====================================================" << std::endl;
 	std::cout << cnn.get_configuration() << std::endl;
-
 
 	// add headers for table of values we want to log out
 	mojo::html_log log;
@@ -150,8 +148,8 @@ int main()
 
 		cnn.start_epoch("cross_entropy");
 
-		#pragma omp parallel for schedule(dynamic)
-		for (int k = 0; k<train_samples; k++)
+#pragma omp parallel for schedule(dynamic)
+		for (int k = 0; k < train_samples; k++)
 		{
 			// augment data random shifts only
 			//mojo::matrix m(32, 32, 3, train_images[k].data());
@@ -168,7 +166,6 @@ int main()
 		std::cout << "  training time:\t" << dt << " seconds on " << cnn.get_thread_count() << " threads" << std::endl;
 		std::cout << "  model updates:\t" << cnn.train_updates << " (" << (int)(100.f*(1. - (float)cnn.train_skipped / cnn.train_samples)) << "% of records)" << std::endl;
 		std::cout << "  estimated accuracy:\t" << cnn.estimated_accuracy << "%" << std::endl;
-
 
 		/* if you want to run in-sample testing on the training set, include this code
 		// == run training set
@@ -203,9 +200,7 @@ int main()
 			std::cout << "Elvis just left the building. No further improvement in training found.\nStopping.." << std::endl;
 			break;
 		}
-
 	};
 	std::cout << std::endl;
 	return 0;
 }
-
